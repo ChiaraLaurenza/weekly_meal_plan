@@ -4098,10 +4098,10 @@
     "ingredients": [
       {
         "name_de": "mehligk. Kartoffeln",
-        "name": "floury potatoes",
+        "name": "flour",
         "quantity": "3",
         "unit": "EL",
-        "category": "produce"
+        "category": "pantry"
       },
       {
         "name_de": "Paprika",

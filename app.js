@@ -325,7 +325,6 @@
   // Aliases to merge near-duplicate ingredient names from imperfect OCR/translation.
   // Applied AFTER prefix stripping (so 'organic sour cream' → 'sour cream' first).
   const NAME_ALIASES = {
-    'chicken breasts': 'chicken breast',
     'red chilis': 'red chili',
     'red chilies': 'red chili',
     'chili pepper': 'red chili',
@@ -333,6 +332,24 @@
     'limes': 'lime',
     'red onions': 'red onion',
     'spring onions': 'spring onion',
+    // Tortillas / wraps — same product, just labelled differently
+    'wheat tortillas': 'tortilla wrap',
+    'wheat tortilla': 'tortilla wrap',
+    'tortilla wraps': 'tortilla wrap',
+    'tortillas': 'tortilla wrap',
+    'wraps': 'tortilla wrap',
+    // Yogurt variants — "creamy"/"plain" are just descriptors of the same dairy item
+    'plain yogurt': 'yogurt',
+    'creamy yogurt': 'yogurt',
+    'yoghurt': 'yogurt',
+    // Salad leaves variants
+    'mixed salad leaves': 'salad leaves',
+    // Brioche bun plural
+    'brioche buns with sesame': 'brioche bun with sesame',
+    // Chicken breast variants — different products kept separate, only plural collapses
+    'chicken breasts': 'chicken breast',
+    // Flour variants — "wheat flour" is just flour for shopping purposes
+    'wheat flour': 'flour',
     'garlic cloves': 'garlic clove',
     'cucumbers': 'cucumber',
     'small salad cucumber': 'cucumber',
@@ -344,7 +361,6 @@
     'waxy potatoes': 'waxy potato',
     'sweet potatoes': 'sweet potato',
     'mini flatbreads': 'mini flatbread',
-    'brioche buns with sesame': 'brioche bun with sesame',
     'mixed bell peppers': 'bell pepper',
     'beets': 'beet',
     'radishes': 'radish',
@@ -542,6 +558,10 @@
       'baking potato': 'baking potatoes',
       'waxy potato': 'waxy potatoes',
       'baby potato': 'baby potatoes',
+      'tortilla wrap': 'tortilla wraps',
+      'brioche bun with sesame': 'brioche buns with sesame',
+      'mini flatbread': 'mini flatbreads',
+      'cherry tomato': 'cherry tomatoes',
     };
     const key = name.toLowerCase();
     if (specials[key]) return specials[key];
