@@ -512,22 +512,59 @@
     return items;
   }
 
-  function formatPart(qty, unit) {
+  function formatPart(qty, unit, name) {
     if (qty == null) return unit ? '— ' + unit : '—';
     let q = qty;
     if (Math.abs(q) < 1) q = Math.round(q * 100) / 100;
     else if (Math.abs(q) < 10) q = Math.round(q * 10) / 10;
     else q = Math.round(q);
     let unitLabel = unit || '';
-    if (unit === 'pc') unitLabel = q === 1 ? 'pc' : 'pcs';
+    // For countable produce/items the unit 'pc' is redundant if the name
+    // already reads as a countable noun (garlic clove, onion, lemon, etc.).
+    // We just show the number and let the name carry the meaning, with simple
+    // English pluralisation handled in the name display below.
+    if (unit === 'pc') unitLabel = '';
     return q + (unitLabel ? ' ' + unitLabel : '');
+  }
+
+  // Naive English pluralisation for countable produce names. Only applies when
+  // the shopping-list quantity is a whole number > 1 in 'pc' units.
+  function pluraliseName(name, totalPcs) {
+    if (totalPcs == null || totalPcs <= 1) return name;
+    // Already plural
+    if (/s$/i.test(name) && !/(ss|us|is)$/i.test(name)) return name;
+    // Special cases
+    const specials = {
+      'garlic clove': 'garlic cloves',
+      'tomato': 'tomatoes',
+      'potato': 'potatoes',
+      'sweet potato': 'sweet potatoes',
+      'baking potato': 'baking potatoes',
+      'waxy potato': 'waxy potatoes',
+      'baby potato': 'baby potatoes',
+    };
+    const key = name.toLowerCase();
+    if (specials[key]) return specials[key];
+    // Default: add 's'
+    return name + 's';
   }
 
   function formatQty(item) {
     // item now has parts: [{qty, unit}]. Show all parts joined by '+' so users can
-    // see e.g. "250 g + 2 pcs sour cream".
+    // see e.g. "250 g + 2 sour cream".
     if (!item.parts || !item.parts.length) return '—';
-    return item.parts.map(p => formatPart(p.qty, p.unit)).join(' + ');
+    return item.parts.map(p => formatPart(p.qty, p.unit, item.name)).join(' + ');
+  }
+
+  // Total countable pieces for this item (used to decide pluralisation of the name)
+  function totalPcs(item) {
+    if (!item.parts) return null;
+    let total = 0;
+    let hasPc = false;
+    item.parts.forEach(p => {
+      if (p.unit === 'pc' && p.qty != null) { total += p.qty; hasPc = true; }
+    });
+    return hasPc ? total : null;
   }
 
   function renderShoppingList() {
@@ -567,11 +604,12 @@
         });
         const text = document.createElement('span');
         text.className = 'shop-item-text';
-        const note = item.recipeCount > 1 ? ` <small style="color:var(--ink-muted)">(×${item.recipeCount})</small>` : '';
+        const note = item.recipeCount > 1 ? ` <small style="color:var(--ink-muted)">(in ${item.recipeCount} recipes)</small>` : '';
         // Spice-mix rows get a small breakdown line beneath so the user knows what to actually buy.
         const mix = spiceMixInfo(item.name);
         const mixLine = mix ? `<div class="shop-spice-breakdown">→ made of: ${mix.components.map(c=>escapeHTML(c)).join(', ')}</div>` : '';
-        text.innerHTML = `<span class="shop-qty">${formatQty(item)}</span> <span class="shop-name">${escapeHTML(item.name)}</span>${note}${mixLine}`;
+        const displayName = pluraliseName(item.name, totalPcs(item));
+        text.innerHTML = `<span class="shop-qty">${formatQty(item)}</span> <span class="shop-name">${escapeHTML(displayName)}</span>${note}${mixLine}`;
         label.appendChild(cb);
         label.appendChild(text);
         block.appendChild(label);
