@@ -3,11 +3,82 @@
   'use strict';
 
   const RECIPES = window.RECIPES || [];
+  const SWEETS  = window.SWEETS  || []; // optional dessert library
   const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-  const CATEGORY_ORDER = ['produce','meat & fish','dairy & eggs','pantry','other'];
-  const STORAGE_KEY = 'recipe_roulette_week_v1';
+  const CATEGORY_ORDER = ['produce','meat & fish','dairy & eggs','pantry','baking & sweets','other'];
+
+  /* ---------- HelloFresh spice mix decoder ----------
+     Sources:
+       - github.com/Schischu/hello_fresh_gewuerze (German label data)
+       - spicebar.de Hello Mediterraneo / Mexico / Südseetraum bio
+       - joesdaily.com & 3boysandadog.com (DIY copycats)
+       - reddit.com/r/hellofresh (DIY blends)
+     Each entry has:
+       - components: list of plain English ingredients you can buy at the supermarket
+       - copycat:    a simple proportional recipe to recreate the blend yourself
+  */
+  const SPICE_MIX_COMPOSITIONS = {
+    'hello aloha spice mix': {
+      components: ['salt', 'sugar', 'mango powder', 'turmeric', 'ground rosemary', 'cumin', 'dried basil', 'lemon zest', 'chili'],
+      copycat: '2 tsp salt + 2 tsp sugar + 1 tsp mango powder + 1 tsp turmeric + 1 tsp dried rosemary + 1 tsp cumin + 1 tsp dried basil + 1 tsp lemon zest + ½ tsp chili powder'
+    },
+    'hello buon appetito spice mix': {
+      components: ['dried tomato', 'salt', 'rosemary', 'oregano', 'basil', 'thyme', 'onion', 'chili', 'garlic', 'porcini powder'],
+      copycat: '1 tbsp tomato powder + 1 tsp salt + ½ tsp each rosemary, oregano, basil, thyme + ½ tsp onion powder + ½ tsp garlic powder + pinch chili + pinch porcini powder'
+    },
+    'hello curry spice mix': {
+      components: ['coriander', 'turmeric', 'fenugreek', 'cumin', 'nutmeg', 'paprika'],
+      copycat: '2 tsp ground coriander + 2 tsp turmeric + ½ tsp fenugreek + 1 tsp cumin + ¼ tsp nutmeg + 1 tsp sweet paprika'
+    },
+    'hello fiesta spice mix': {
+      components: ['paprika', 'cumin', 'garlic', 'allspice', 'cinnamon', 'chili', 'sea salt', 'tomato powder'],
+      copycat: '2 tsp paprika + 1 tsp cumin + 1 tsp garlic powder + ¼ tsp allspice + ¼ tsp cinnamon + ½ tsp chili powder + 1 tsp salt + 1 tsp tomato powder'
+    },
+    'hello harissa spice mix': {
+      components: ['chili', 'paprika', 'cumin', 'garlic', 'coriander', 'allspice', 'sea salt'],
+      copycat: '2 tsp chili powder + 2 tsp paprika + 1 tsp cumin + 1 tsp garlic powder + 1 tsp ground coriander + ¼ tsp allspice + 1 tsp salt'
+    },
+    'hello mediterraneo spice mix': {
+      components: ['dried tomato', 'salt', 'rosemary', 'oregano', 'basil', 'thyme', 'onion', 'chili', 'garlic', 'porcini powder'],
+      copycat: '1 tbsp tomato powder + 1 tsp salt + ½ tsp each rosemary, oregano, basil, thyme + ½ tsp onion powder + ½ tsp garlic powder + pinch chili + pinch porcini powder'
+    },
+    'hello mexico spice mix': {
+      components: ['paprika', 'cumin', 'garlic', 'allspice', 'cinnamon', 'habanero chili', 'sea salt', 'tomato powder'],
+      copycat: '2 tsp sweet paprika + 1 tsp cumin + 1 tsp garlic powder + ¼ tsp allspice + ¼ tsp cinnamon + ¼ tsp chili powder + 1 tsp salt + 1 tsp tomato powder'
+    },
+    'hello mezze spice mix': {
+      components: ['tomato powder', 'garlic powder', 'cumin', 'chili'],
+      copycat: '1 tbsp tomato powder + 1 tsp garlic powder + 1 tsp cumin + ½ tsp chili powder'
+    },
+    'hello muskat spice mix': {
+      components: ['salt', 'dried vegetables (leek, parsnip, carrot, mushroom, celery, onion, tomato)', 'nutmeg', 'turmeric', 'parsley', 'lovage', 'garlic'],
+      copycat: '1 tsp vegetable stock powder + ¼ tsp nutmeg + pinch turmeric + ½ tsp dried mixed herbs (parsley & lovage)'
+    },
+    'hello paprika spice mix': {
+      components: ['paprika', 'garlic', 'black pepper', 'onion', 'salt', 'roasted onion powder', 'tomato powder'],
+      copycat: '2 tsp paprika + 1 tsp garlic powder + ¼ tsp black pepper + 1 tsp onion powder + 1 tsp salt + 1 tsp tomato powder'
+    },
+    'hello smoky paprika spice mix': {
+      components: ['salt', 'smoked paprika', 'black pepper', 'mustard powder', 'chili', 'sugar', 'natural smoke flavor'],
+      copycat: '1 tsp salt + 2 tsp smoked paprika + ¼ tsp black pepper + ¼ tsp mustard powder + pinch chili + ½ tsp sugar'
+    },
+    'south sea dream spice mix': {
+      components: ['salt', 'cane sugar', 'mango', 'turmeric', 'rosemary', 'cumin', 'lemon zest', 'basil', 'chili', 'fennel'],
+      copycat: '2 tsp salt + 2 tsp brown sugar + 1 tsp mango powder + 1 tsp turmeric + 1 tsp dried rosemary + 1 tsp cumin + 1 tsp lemon zest + 1 tsp dried basil + ½ tsp chili powder + ½ tsp fennel'
+    },
+  };
+
+  function spiceMixInfo(name) {
+    if (!name) return null;
+    return SPICE_MIX_COMPOSITIONS[name.toLowerCase().trim()] || null;
+  }
 
   let currentWeek = [null, null, null, null, null, null, null]; // array of recipe ids
+  let currentSweet = null; // id of the sweet for the week, null if none picked
+
+  function sweetById(id) {
+    return SWEETS.find(s => s.id === id) || null;
+  }
 
   /* ---------- Utilities ---------- */
   function shuffle(arr) {
@@ -24,6 +95,11 @@
   }
 
   /* ---------- Week generation ---------- */
+  function pickSweet() {
+    if (!SWEETS.length) return null;
+    return SWEETS[Math.floor(Math.random() * SWEETS.length)].id;
+  }
+
   function pickWeek(opts) {
     const balanceProteins = opts.balanceProteins;
     const quickOnly = opts.quickOnly;
@@ -104,8 +180,65 @@
   /* ---------- Rendering ---------- */
   function render() {
     renderWeek();
+    renderSweet();
     renderShoppingList();
     saveWeek();
+    const hasAny = currentWeek.some(id => id !== null) || currentSweet != null;
+    updateSavedHint(hasAny ? Date.now() : null);
+  }
+
+  function renderSweet() {
+    const section = document.getElementById('sweet-section');
+    const host = document.getElementById('sweet-card-host');
+    if (!section || !host) return;
+    // Hide entirely if there are no sweets in the library
+    if (!SWEETS.length) {
+      section.hidden = true;
+      return;
+    }
+    section.hidden = false;
+    const s = currentSweet != null ? sweetById(currentSweet) : null;
+    host.innerHTML = '';
+    if (!s) {
+      const empty = document.createElement('div');
+      empty.className = 'sweet-empty';
+      empty.innerHTML = `<p>No sweet picked yet. <button type="button" id="pick-sweet-btn" class="link-btn">Pick one for the week</button></p>`;
+      host.appendChild(empty);
+      const btn = document.getElementById('pick-sweet-btn');
+      if (btn) btn.addEventListener('click', () => { currentSweet = pickSweet(); render(); });
+      return;
+    }
+    const card = document.createElement('article');
+    card.className = 'sweet-card';
+    card.innerHTML = `
+      <div class="sweet-card-body">
+        <div class="sweet-eyebrow">This week’s treat</div>
+        <h3 class="sweet-title">${escapeHTML(toTitleCase(s.title))}</h3>
+        <p class="sweet-subtitle">${escapeHTML(s.subtitle || '')}</p>
+        <div class="sweet-meta">
+          <span class="tag">${s.prep_time_min || '?'} min</span>
+          ${s.difficulty ? `<span class="tag">★${s.difficulty}/5</span>` : ''}
+          ${s.servings ? `<span class="tag">${s.servings} servings</span>` : ''}
+        </div>
+        <div class="sweet-actions">
+          <button type="button" class="day-action-btn primary" id="sweet-view-btn">View recipe</button>
+          <button type="button" class="day-action-btn" id="sweet-swap-btn">Pick another</button>
+        </div>
+      </div>
+    `;
+    host.appendChild(card);
+    document.getElementById('sweet-view-btn').addEventListener('click', () => openSweetModal(s.id));
+    document.getElementById('sweet-swap-btn').addEventListener('click', () => {
+      // pick a different sweet if possible
+      if (SWEETS.length > 1) {
+        let next = currentSweet;
+        while (next === currentSweet) next = pickSweet();
+        currentSweet = next;
+      } else {
+        currentSweet = pickSweet();
+      }
+      render();
+    });
   }
 
   function renderWeek() {
@@ -189,7 +322,8 @@
     return UNIT_NORMALISE[k] || k;
   }
 
-  // Aliases to merge near-duplicate ingredient names from imperfect OCR/translation
+  // Aliases to merge near-duplicate ingredient names from imperfect OCR/translation.
+  // Applied AFTER prefix stripping (so 'organic sour cream' → 'sour cream' first).
   const NAME_ALIASES = {
     'chicken breasts': 'chicken breast',
     'red chilis': 'red chili',
@@ -201,65 +335,199 @@
     'spring onions': 'spring onion',
     'garlic cloves': 'garlic clove',
     'cucumbers': 'cucumber',
+    'small salad cucumber': 'cucumber',
     'tomatoes': 'tomato',
+    'cherry tomatoes': 'cherry tomato',
     'carrots': 'carrot',
     'potatoes': 'potato',
+    'baby potatoes': 'baby potato',
+    'waxy potatoes': 'waxy potato',
     'sweet potatoes': 'sweet potato',
     'mini flatbreads': 'mini flatbread',
     'brioche buns with sesame': 'brioche bun with sesame',
-    'small salad cucumber': 'cucumber',
-    'baby potatoes': 'baby potato',
+    'mixed bell peppers': 'bell pepper',
+    'beets': 'beet',
+    'radishes': 'radish',
+    'shallots': 'shallot',
+    'pears': 'pear',
+    'apples': 'apple',
+    'hazelnuts': 'hazelnut',
+    'pumpkin seeds': 'pumpkin seed',
+    'flaked almonds': 'flaked almond',
+    'black beans': 'black bean',
+    'brown lentils': 'brown lentil',
+    'chickpeas': 'chickpea',
+    'goat cheese rounds': 'goat cheese',
+    'fresh goat cheese rounds': 'goat cheese',
+    // Hard / grating cheese — all the parmesan-style variants collapse to one
+    'grated hard cheese': 'grated hard cheese',
+    'grated hard cheese (parmesan-style)': 'grated hard cheese',
+    'grated italian-style hard cheese': 'grated hard cheese',
+    'italian-style hard cheese': 'grated hard cheese',
+    'parmesan': 'grated hard cheese',
+    'parmigiano': 'grated hard cheese',
+    'grana padano': 'grated hard cheese',
+    // Parsley + alternate-herb labels ("X / Y" means "either of these") collapse
+    // to parsley as the common denominator since parsley is in every variant.
+    'flat-leaf parsley': 'parsley',
+    'flat-leaf parsley / thyme': 'parsley',
+    'flat-leaf parsley / chives': 'parsley',
+    'cilantro / flat-leaf parsley': 'parsley',
+    'parsley / thyme': 'parsley',
+    'parsley / chives': 'parsley',
+    'parsley & thyme': 'parsley',
+    'mint / parsley': 'parsley',
+    'dill / parsley': 'parsley',
+    'basil / parsley': 'parsley',
+    // Chives variants
+    'dill / chives': 'chives',
+    // Thyme + sage variants
+    'sage / thyme': 'thyme',
+    'dried thyme': 'thyme',
+    'dried oregano': 'oregano',
+    'baking potato': 'potato',
+    'diced tomatoes': 'diced tomato',
+    // Oyster mushrooms (king oyster mushrooms are botanically different but used
+    // similarly; keep separate). Just normalise plurals here.
+    'oyster mushroom': 'oyster mushrooms',
+    'king oyster mushroom': 'king oyster mushrooms',
+    'white mushroom': 'white mushrooms',
+    // Cashews
+    'roasted cashews': 'cashews',
+    // Breadcrumbs (panko is distinct enough texture-wise; leave separate)
+    // Spätzle
+    'egg spätzle': 'spätzle',
+    // Vinegar generic
+    'wine vinegar': 'vinegar',
+    // Spice mixes — "hello"-less labels collapse to the canonical Hello X form
+    'buon appetito spice mix': 'hello buon appetito spice mix',
+    'harissa spice mix': 'hello harissa spice mix',
+    'paprika spice mix': 'hello paprika spice mix',
   };
+
+  // Strip generic adjective prefixes that don't change the underlying ingredient.
+  // Keep meaningful modifiers like 'smoked', 'sweet', 'red', 'dried', etc.
+  const STRIP_PREFIXES = ['organic', 'fresh', 'creamy', 'plain'];
+
   function normName(n) {
-    const k = n.toLowerCase().trim();
+    let k = n.toLowerCase().trim();
+    // strip leading generic adjectives (loop in case of multiple, e.g. 'fresh organic ...')
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const p of STRIP_PREFIXES) {
+        if (k.startsWith(p + ' ')) { k = k.slice(p.length + 1); changed = true; }
+      }
+    }
     return NAME_ALIASES[k] || k;
   }
 
-  function buildShoppingList(weekIds) {
-    // map: key (name + unit) -> { name, unit, qty (number|null), category }
-    const map = new Map();
-    weekIds.filter(id => id !== null).forEach(id => {
-      const r = recipeById(id);
-      if (!r) return;
-      r.ingredients.forEach(ing => {
+  // Group dimensionally-compatible units so we can merge them.
+  // 'spice' is a synthetic group for tbsp/tsp/pinch — added together as tsp.
+  const UNIT_GROUP = {
+    'g': 'mass', 'kg': 'mass',
+    'ml': 'volume', 'l': 'volume',
+    'tbsp': 'spice', 'tsp': 'spice', 'pinch': 'spice',
+    'pc': 'count', 'bunch': 'count', 'pack': 'count',
+  };
+  // Convert qty into the canonical unit for its group (g, ml, tsp, pc).
+  function toCanonical(qty, unit) {
+    if (qty == null) return null;
+    if (unit === 'kg') return qty * 1000;
+    if (unit === 'l') return qty * 1000;
+    if (unit === 'tbsp') return qty * 3;   // 1 tbsp = 3 tsp
+    if (unit === 'pinch') return qty / 8;  // ~8 pinches = 1 tsp
+    return qty;
+  }
+  function canonUnit(unit) {
+    const g = UNIT_GROUP[unit];
+    if (g === 'mass') return 'g';
+    if (g === 'volume') return 'ml';
+    if (g === 'spice') return 'tsp';
+    if (g === 'count') return unit; // keep pc/bunch/pack distinct labels
+    return unit;
+  }
+
+  function buildShoppingList(weekIds, sweetId) {
+    // First pass: bucket by (name|unit). Then second pass: collapse buckets with
+    // dimensionally-compatible units onto a single shopping-list row that lists
+    // every quantity together so the user sees, e.g. "250 g + 2 pcs sour cream".
+    const buckets = new Map(); // key name|unit → { name, unit, qty, category, recipeCount }
+    function addIngredients(ings, defaultCategory) {
+      (ings || []).forEach(ing => {
         const rawName = (ing.name || '').trim();
         if (!rawName) return;
-        const name = normName(rawName).replace(/\b\w/g, c => c); // keep lowercase canonical
+        const name = normName(rawName);
         const unit = normUnit(ing.unit);
         const qty = parseQty(ing.quantity);
         const key = name + '|' + unit;
-        const existing = map.get(key);
+        const existing = buckets.get(key);
         if (existing) {
           if (qty != null && existing.qty != null) existing.qty += qty;
           else if (qty != null && existing.qty == null) existing.qty = qty;
           existing.recipeCount += 1;
         } else {
-          map.set(key, {
-            name: name,
-            displayName: name,
-            unit: unit,
-            qty: qty,
-            category: ing.category || 'other',
-            recipeCount: 1,
-          });
+          buckets.set(key, { name, unit, qty, category: ing.category || defaultCategory || 'other', recipeCount: 1 });
         }
       });
+    }
+    weekIds.filter(id => id !== null).forEach(id => {
+      const r = recipeById(id);
+      if (r) addIngredients(r.ingredients, 'other');
     });
-    return Array.from(map.values());
+    // Sweet ingredients fold into the same shopping list under category 'baking & sweets'
+    if (sweetId != null) {
+      const s = sweetById(sweetId);
+      if (s) addIngredients(s.ingredients, 'baking & sweets');
+    }
+
+    // Second pass: group by name. Within a name, collect all unit→qty pairs.
+    // Dimensionally compatible units (mass/volume/spice) get merged in canonical units;
+    // 'count' units stay as-is so users still see "2 pcs".
+    const byName = new Map(); // name → { name, category, recipeCount, parts: [{label, qty (canon), unit (canon)}] }
+    for (const b of buckets.values()) {
+      if (!byName.has(b.name)) byName.set(b.name, { name: b.name, category: b.category, recipeCount: 0, parts: [] });
+      const entry = byName.get(b.name);
+      entry.recipeCount += b.recipeCount;
+      entry.parts.push({ qty: toCanonical(b.qty, b.unit), unit: canonUnit(b.unit) });
+    }
+
+    // Collapse parts: same canonical unit → sum.
+    const items = [];
+    for (const entry of byName.values()) {
+      const merged = new Map();
+      for (const p of entry.parts) {
+        const k = p.unit || '';
+        if (!merged.has(k)) merged.set(k, { qty: null, unit: p.unit });
+        const m = merged.get(k);
+        if (p.qty != null) m.qty = (m.qty || 0) + p.qty;
+      }
+      items.push({
+        name: entry.name,
+        category: entry.category,
+        recipeCount: entry.recipeCount,
+        parts: Array.from(merged.values()),
+      });
+    }
+    return items;
   }
 
-  function formatQty(item) {
-    let q = item.qty;
-    let u = item.unit;
-    if (q == null) return '—';
-    // round
+  function formatPart(qty, unit) {
+    if (qty == null) return unit ? '— ' + unit : '—';
+    let q = qty;
     if (Math.abs(q) < 1) q = Math.round(q * 100) / 100;
     else if (Math.abs(q) < 10) q = Math.round(q * 10) / 10;
     else q = Math.round(q);
-    let unitLabel = u;
-    if (u === 'pc') unitLabel = q === 1 ? 'pc' : 'pcs';
-    if (!u) unitLabel = '';
+    let unitLabel = unit || '';
+    if (unit === 'pc') unitLabel = q === 1 ? 'pc' : 'pcs';
     return q + (unitLabel ? ' ' + unitLabel : '');
+  }
+
+  function formatQty(item) {
+    // item now has parts: [{qty, unit}]. Show all parts joined by '+' so users can
+    // see e.g. "250 g + 2 pcs sour cream".
+    if (!item.parts || !item.parts.length) return '—';
+    return item.parts.map(p => formatPart(p.qty, p.unit)).join(' + ');
   }
 
   function renderShoppingList() {
@@ -272,7 +540,7 @@
     }
     section.hidden = false;
 
-    const items = buildShoppingList(currentWeek);
+    const items = buildShoppingList(currentWeek, currentSweet);
     // group by category
     const byCat = {};
     items.forEach(it => {
@@ -300,13 +568,44 @@
         const text = document.createElement('span');
         text.className = 'shop-item-text';
         const note = item.recipeCount > 1 ? ` <small style="color:var(--ink-muted)">(×${item.recipeCount})</small>` : '';
-        text.innerHTML = `<span class="shop-qty">${formatQty(item)}</span> <span class="shop-name">${escapeHTML(item.name)}</span>${note}`;
+        // Spice-mix rows get a small breakdown line beneath so the user knows what to actually buy.
+        const mix = spiceMixInfo(item.name);
+        const mixLine = mix ? `<div class="shop-spice-breakdown">→ made of: ${mix.components.map(c=>escapeHTML(c)).join(', ')}</div>` : '';
+        text.innerHTML = `<span class="shop-qty">${formatQty(item)}</span> <span class="shop-name">${escapeHTML(item.name)}</span>${note}${mixLine}`;
         label.appendChild(cb);
         label.appendChild(text);
         block.appendChild(label);
       });
       container.appendChild(block);
     });
+
+    // Append a dedicated spice-mix reference card so the user can see all the
+    // copycat blends in one place (these aren't sold in supermarkets).
+    const usedMixes = new Set();
+    items.forEach(it => { if (spiceMixInfo(it.name)) usedMixes.add(it.name); });
+    if (usedMixes.size > 0) {
+      const mixBlock = document.createElement('div');
+      mixBlock.className = 'shop-category shop-spice-reference';
+      const h = document.createElement('h3');
+      h.textContent = 'HelloFresh spice mixes — build your own';
+      mixBlock.appendChild(h);
+      const intro = document.createElement('p');
+      intro.className = 'shop-spice-intro';
+      intro.textContent = 'These mixes aren’t sold in supermarkets. Either skip them and use the components from your pantry, or pre-mix the copycat blend below.';
+      mixBlock.appendChild(intro);
+      Array.from(usedMixes).sort().forEach(name => {
+        const mix = spiceMixInfo(name);
+        const card = document.createElement('div');
+        card.className = 'spice-card';
+        card.innerHTML = `
+          <div class="spice-card-name">${escapeHTML(name)}</div>
+          <div class="spice-card-components"><strong>Made of:</strong> ${mix.components.map(c=>escapeHTML(c)).join(', ')}</div>
+          <div class="spice-card-copycat"><strong>Copycat blend:</strong> ${escapeHTML(mix.copycat)}</div>
+        `;
+        mixBlock.appendChild(card);
+      });
+      container.appendChild(mixBlock);
+    }
   }
 
   /* ---------- Recipe modal ---------- */
@@ -322,10 +621,21 @@
       let unitDisplay = u;
       if (u === 'pc') unitDisplay = parseQty(ing.quantity) === 1 ? 'pc' : 'pcs';
       if (!u) unitDisplay = '';
+      // If this is a HelloFresh spice mix, expose the component breakdown so the
+      // user can buy individual supermarket spices instead of the proprietary mix.
+      const mix = spiceMixInfo(ing.name);
+      const mixHTML = mix ? `
+        <div class="spice-breakdown">
+          <div class="spice-breakdown-label">= ${mix.components.map(c => escapeHTML(c)).join(', ')}</div>
+          <div class="spice-breakdown-copycat"><strong>Copycat blend:</strong> ${escapeHTML(mix.copycat)}</div>
+        </div>` : '';
       return `
-      <li>
-        <span class="ing-name">${escapeHTML(ing.name)}</span>
-        <span class="ing-qty">${escapeHTML(ing.quantity)} ${escapeHTML(unitDisplay)}</span>
+      <li${mix ? ' class="ing-with-breakdown"' : ''}>
+        <div class="ing-row">
+          <span class="ing-name">${escapeHTML(ing.name)}</span>
+          <span class="ing-qty">${escapeHTML(ing.quantity)} ${escapeHTML(unitDisplay)}</span>
+        </div>
+        ${mixHTML}
       </li>
       `;
     }).join('');
@@ -352,6 +662,45 @@
     modal.showModal();
   }
 
+  function openSweetModal(id) {
+    const s = sweetById(id);
+    if (!s) return;
+    const modal = document.getElementById('recipe-modal');
+    const content = document.getElementById('modal-content');
+
+    const ingredientsHTML = (s.ingredients || []).map(ing => {
+      const u = normUnit(ing.unit);
+      let unitDisplay = u;
+      if (u === 'pc') unitDisplay = parseQty(ing.quantity) === 1 ? 'pc' : 'pcs';
+      if (!u) unitDisplay = '';
+      return `
+      <li>
+        <div class="ing-row">
+          <span class="ing-name">${escapeHTML(ing.name)}</span>
+          <span class="ing-qty">${escapeHTML(ing.quantity || '')} ${escapeHTML(unitDisplay)}</span>
+        </div>
+      </li>`;
+    }).join('');
+    const stepsHTML = (s.steps || []).map(st => `<li>${escapeHTML(st)}</li>`).join('');
+
+    content.innerHTML = `
+      <h2 id="modal-title" class="modal-title">${escapeHTML(toTitleCase(s.title))}</h2>
+      <p class="modal-subtitle">${escapeHTML(s.subtitle || '')}</p>
+      <div class="modal-meta">
+        <span class="tag tag-sweet">sweet</span>
+        ${s.prep_time_min ? `<span class="tag">${s.prep_time_min} min</span>` : ''}
+        ${s.difficulty ? `<span class="tag">Difficulty ★${s.difficulty}/5</span>` : ''}
+        ${s.servings ? `<span class="tag">${s.servings} servings</span>` : ''}
+      </div>
+      <h3 class="modal-section-title">Ingredients</h3>
+      <ul class="modal-ingredients">${ingredientsHTML}</ul>
+      <h3 class="modal-section-title">Steps</h3>
+      <ol class="modal-steps">${stepsHTML}</ol>
+      ${s.source ? `<p style="margin-top:24px;font-size:12px;color:var(--ink-muted);">Source: ${escapeHTML(s.source)}</p>` : ''}
+    `;
+    modal.showModal();
+  }
+
   function closeModal() {
     document.getElementById('recipe-modal').close();
   }
@@ -374,31 +723,102 @@
   }
 
   function getOpts() {
-    return {
-      balanceProteins: document.getElementById('balance-proteins').checked,
-      quickOnly: document.getElementById('quick-only').checked,
-    };
+    // Defaults baked in: always balance proteins, no time filter.
+    return { balanceProteins: true, quickOnly: false };
   }
 
-  /* ---------- Persistence ---------- */
-  function saveWeek() {
+  /* ---------- Persistence ----------
+     Stores the current week + timestamp in localStorage so the plan survives
+     page navigation/reloads. Wrapped in try/catch because some embed contexts
+     (sandboxed iframes, private mode) block storage — in that case we silently
+     fall back to in-memory only.
+  */
+  const STORAGE_KEY = 'recipeRoulette.currentWeek.v1';
+
+  function safeStorage() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(currentWeek));
-    } catch(e) {}
+      const t = '__rr_test__';
+      window.localStorage.setItem(t, '1');
+      window.localStorage.removeItem(t);
+      return window.localStorage;
+    } catch (e) {
+      return null;
+    }
   }
-  function loadWeek() {
+
+  function saveWeek() {
+    const store = safeStorage();
+    if (!store) return;
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const hasAny = currentWeek.some(id => id !== null) || currentSweet != null;
+      if (!hasAny) {
+        store.removeItem(STORAGE_KEY);
+        return;
+      }
+      store.setItem(STORAGE_KEY, JSON.stringify({
+        week: currentWeek,
+        sweet: currentSweet,
+        savedAt: Date.now(),
+      }));
+    } catch (e) { /* quota or other error — ignore */ }
+  }
+
+  function loadWeek() {
+    const store = safeStorage();
+    if (!store) return null;
+    try {
+      const raw = store.getItem(STORAGE_KEY);
       if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length === 7) return parsed;
-    } catch(e) {}
-    return null;
+      const data = JSON.parse(raw);
+      if (!data || !Array.isArray(data.week) || data.week.length !== 7) return null;
+      // validate every id still exists in the recipe library
+      const valid = data.week.every(id => id === null || recipeById(id) != null);
+      if (!valid) return null;
+      // Validate sweet id (if present — may be null/undefined for old saves or empty library)
+      if (data.sweet != null && sweetById(data.sweet) == null) data.sweet = null;
+      return data;
+    } catch (e) { return null; }
+  }
+
+  function clearWeek() {
+    const store = safeStorage();
+    if (store) { try { store.removeItem(STORAGE_KEY); } catch (e) {} }
+    currentWeek = [null, null, null, null, null, null, null];
+    currentSweet = null;
+    render();
+    updateSavedHint(null);
+  }
+
+  function formatSavedDate(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const today = new Date();
+    const sameDay = d.toDateString() === today.toDateString();
+    const time = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    if (sameDay) return 'today at ' + time;
+    const diffDays = Math.round((today - d) / 86400000);
+    if (diffDays === 1) return 'yesterday at ' + time;
+    if (diffDays < 7) return diffDays + ' days ago';
+    return d.toLocaleDateString();
+  }
+
+  function updateSavedHint(savedAt) {
+    const el = document.getElementById('saved-hint');
+    if (!el) return;
+    if (savedAt) {
+      el.hidden = false;
+      el.innerHTML = `· Saved ${formatSavedDate(savedAt)} <button type="button" id="clear-week-btn" class="link-btn">Clear week</button>`;
+      const btn = document.getElementById('clear-week-btn');
+      if (btn) btn.addEventListener('click', clearWeek);
+    } else {
+      el.hidden = true;
+      el.textContent = '';
+    }
   }
 
   /* ---------- Copy / print ---------- */
   function shoppingListAsText() {
-    const items = buildShoppingList(currentWeek);
+    const items = buildShoppingList(currentWeek, currentSweet);
     const byCat = {};
     items.forEach(it => (byCat[it.category] = byCat[it.category] || []).push(it));
     const lines = ['Shopping list — for 2 people\n'];
@@ -409,14 +829,33 @@
         lines.push(`${day}: ${toTitleCase(r.title)}`);
       }
     });
+    if (currentSweet != null) {
+      const s = sweetById(currentSweet);
+      if (s) lines.push(`Sweet of the week: ${toTitleCase(s.title)}`);
+    }
     lines.push('');
     CATEGORY_ORDER.filter(c => byCat[c]).forEach(cat => {
       lines.push('— ' + cat.toUpperCase() + ' —');
       byCat[cat].sort((a,b)=>a.name.localeCompare(b.name)).forEach(it => {
+        const mix = spiceMixInfo(it.name);
         lines.push('  [ ] ' + formatQty(it) + '  ' + it.name);
+        if (mix) lines.push('         → made of: ' + mix.components.join(', '));
       });
       lines.push('');
     });
+    // Spice mix copycat reference
+    const usedMixes = new Set();
+    items.forEach(it => { if (spiceMixInfo(it.name)) usedMixes.add(it.name); });
+    if (usedMixes.size) {
+      lines.push('— HELLOFRESH SPICE MIXES (build your own) —');
+      Array.from(usedMixes).sort().forEach(name => {
+        const mix = spiceMixInfo(name);
+        lines.push(name + ':');
+        lines.push('  Made of: ' + mix.components.join(', '));
+        lines.push('  Copycat: ' + mix.copycat);
+        lines.push('');
+      });
+    }
     return lines.join('\n');
   }
 
@@ -438,10 +877,13 @@
     const proteinCounts = {};
     RECIPES.forEach(r => proteinCounts[r.protein_type] = (proteinCounts[r.protein_type]||0)+1);
     const summary = Object.entries(proteinCounts).map(([k,v])=>`${v} ${k}`).join(' · ');
-    info.textContent = `${RECIPES.length} recipes loaded — ${summary}`;
+    const sweetSummary = SWEETS.length ? ` · ${SWEETS.length} sweets` : '';
+    info.textContent = `${RECIPES.length} recipes loaded — ${summary}${sweetSummary}`;
 
     document.getElementById('generate-btn').addEventListener('click', () => {
       currentWeek = pickWeek(getOpts());
+      // also pick a sweet if any are available; user can still swap or clear it
+      if (SWEETS.length) currentSweet = pickSweet();
       render();
     });
     document.getElementById('modal-close').addEventListener('click', closeModal);
@@ -451,13 +893,18 @@
     document.getElementById('copy-list-btn').addEventListener('click', copyShoppingList);
     document.getElementById('print-list-btn').addEventListener('click', () => window.print());
 
-    // restore previous week
+    // Restore saved week from localStorage if available
     const saved = loadWeek();
     if (saved) {
-      currentWeek = saved;
-      render();
+      currentWeek = saved.week;
+      currentSweet = saved.sweet != null ? saved.sweet : null;
+      renderWeek();
+      renderSweet();
+      renderShoppingList();
+      updateSavedHint(saved.savedAt);
     } else {
       renderWeek();
+      renderSweet();
     }
   }
 

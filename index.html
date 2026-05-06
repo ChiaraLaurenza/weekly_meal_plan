@@ -35,24 +35,20 @@
         </svg>
         Generate this week
       </button>
-      <div class="filters">
-        <label class="filter-label">
-          <input type="checkbox" id="balance-proteins" checked />
-          <span>Balance proteins</span>
-        </label>
-        <label class="filter-label">
-          <input type="checkbox" id="quick-only" />
-          <span>≤ 40 min only</span>
-        </label>
-      </div>
     </div>
-    <p class="library-info" id="library-info">Loading recipe library…</p>
+    <p class="library-info"><span id="library-info">Loading recipe library…</span> <span id="saved-hint" class="saved-hint" hidden></span></p>
   </section>
 
   <section class="week-section" aria-labelledby="week-title">
     <h2 id="week-title">Your week</h2>
     <p class="hint" id="week-hint">Click "Generate this week" above to draw 7 random recipes. Click any day to swap that recipe.</p>
     <div id="week-grid" class="week-grid"></div>
+  </section>
+
+  <section class="sweet-section" aria-labelledby="sweet-title" id="sweet-section" hidden>
+    <h2 id="sweet-title">Sweet of the week</h2>
+    <p class="sweet-tagline">One bake or treat to enjoy throughout the week.</p>
+    <div id="sweet-card-host"></div>
   </section>
 
   <section class="shopping-section" aria-labelledby="shopping-title" id="shopping-section" hidden>
@@ -78,6 +74,7 @@
 </footer>
 
 <script src="recipes.js"></script>
+<script src="sweets.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

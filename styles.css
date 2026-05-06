@@ -124,6 +124,23 @@ section h2 {
   color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
 }
+.saved-hint {
+  color: var(--ink-muted);
+  margin-left: 4px;
+}
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0 0 0 8px;
+  margin: 0;
+  color: var(--accent);
+  font-size: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.link-btn:hover { color: var(--ink); }
 
 /* ----- Buttons ----- */
 .btn {
@@ -245,6 +262,72 @@ section h2 {
 }
 .day-action-btn.primary:hover { background: var(--accent); border-color: var(--accent); }
 
+/* ----- Sweet of the week ----- */
+.sweet-section {
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.sweet-tagline {
+  margin: -4px 0 16px;
+  color: var(--ink-muted);
+  font-size: 13.5px;
+}
+.sweet-card {
+  background: linear-gradient(135deg, rgba(194, 65, 12, 0.04) 0%, rgba(194, 65, 12, 0.10) 100%);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  max-width: 640px;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.04));
+}
+.sweet-card-body { display: flex; flex-direction: column; gap: 6px; }
+.sweet-eyebrow {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 500;
+}
+.sweet-title {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 60;
+  font-weight: 500;
+  font-size: 26px;
+  line-height: 1.2;
+  margin: 2px 0 4px;
+  letter-spacing: -0.01em;
+}
+.sweet-subtitle {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.sweet-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 4px;
+}
+.sweet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.sweet-empty {
+  color: var(--ink-muted);
+  font-size: 14px;
+  padding: 20px 0;
+}
+.tag-sweet {
+  background: rgba(194, 65, 12, 0.12);
+  color: var(--accent);
+  border-color: rgba(194, 65, 12, 0.3);
+}
+
 /* ----- Shopping list ----- */
 .shopping-section { padding-top: 8px; border-top: 1px solid var(--line); }
 .shopping-header {
@@ -298,6 +381,45 @@ section h2 {
 .shop-qty { font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
 .shop-item.checked .shop-qty { color: var(--ink-muted); }
 .shop-name { color: var(--ink-soft); }
+.shop-spice-breakdown {
+  font-size: 12px;
+  color: var(--ink-muted);
+  font-style: italic;
+  margin-top: 2px;
+  padding-left: 4px;
+}
+.shop-spice-reference {
+  grid-column: 1 / -1;
+  margin-top: 12px;
+  background: rgba(194, 65, 12, 0.05);
+  padding: 16px 18px;
+  border-radius: var(--radius-md);
+  border-left: 4px solid var(--accent);
+}
+.shop-spice-intro {
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+.spice-card {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 6px);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.spice-card-name {
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+.spice-card-components { color: var(--ink-soft); margin-bottom: 4px; }
+.spice-card-copycat { color: var(--ink-muted); }
+.spice-card strong { color: var(--ink); font-weight: 600; }
 
 /* ----- Modal ----- */
 .recipe-modal {
@@ -372,12 +494,32 @@ section h2 {
   font-size: 14px;
   padding: 4px 0;
   border-bottom: 1px dashed var(--line);
+}
+.modal-ingredients li.ing-with-breakdown {
+  grid-column: 1 / -1;
+  background: rgba(194, 65, 12, 0.06);
+  border-left: 3px solid var(--accent);
+  padding: 8px 10px;
+  border-radius: 4px;
+  margin: 4px 0;
+  border-bottom: none;
+}
+.modal-ingredients .ing-row {
   display: flex;
   justify-content: space-between;
   gap: 12px;
 }
 .modal-ingredients .ing-name { color: var(--ink-soft); }
 .modal-ingredients .ing-qty { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+.modal-ingredients .spice-breakdown {
+  margin-top: 6px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+.modal-ingredients .spice-breakdown-label { margin-bottom: 3px; }
+.modal-ingredients .spice-breakdown-copycat { color: var(--ink-soft); }
+.modal-ingredients .spice-breakdown-copycat strong { color: var(--accent); font-weight: 600; }
 .modal-steps {
   list-style: none;
   padding: 0;
